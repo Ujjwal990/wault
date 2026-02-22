@@ -7,9 +7,8 @@
   <!-- HERO -->
   <div class="home-hero">
     <div class="hero-inner">
-      <p class="greeting">Welcome,</p>
-      <h1 class="home-title">{{ FAMILY_NAME }} 🏡</h1>
-      <p class="home-subtitle">{{ members.count }} member{{ members.count|pluralize }} &middot; {{ total_docs }} document{{ total_docs|pluralize }}</p>
+      <h1 class="home-title">Welcome, {{ request.user.username }} 👋</h1>
+      <p class="home-subtitle">{{ FAMILY_NAME }} &middot; {{ members.count }} member{{ members.count|pluralize }} &middot; {{ total_docs }} document{{ total_docs|pluralize }}</p>
     </div>
   </div>
 
