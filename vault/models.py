@@ -1,5 +1,5 @@
 from django.db import models
-from django.utils import timezone
+from django.conf import settings
 
 
 AVATAR_COLORS = [
@@ -33,11 +33,17 @@ FILE_TYPE_CHOICES = [
 
 
 class FamilyMember(models.Model):
-    name = models.CharField(max_length=100)           # Full name e.g. "Rajesh Sharma"
-    display_name = models.CharField(max_length=50)    # Short name e.g. "Papa"
-    avatar_letter = models.CharField(max_length=2)    # e.g. "R"
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='family_members',
+        null=True, blank=True,
+    )
+    name = models.CharField(max_length=100)
+    display_name = models.CharField(max_length=50)
+    avatar_letter = models.CharField(max_length=2)
     avatar_color = models.CharField(max_length=20, choices=AVATAR_COLORS, default='purple')
-    order = models.PositiveIntegerField(default=0)    # Display order
+    order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -63,7 +69,7 @@ class Document(models.Model):
     file_type = models.CharField(max_length=10, choices=FILE_TYPE_CHOICES, default='image')
     drive_file_id = models.CharField(max_length=200, blank=True)
     drive_view_url = models.URLField(blank=True)
-    file_size = models.BigIntegerField(default=0)     # bytes
+    file_size = models.BigIntegerField(default=0)
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -18,22 +18,17 @@
     <span class="logo-icon">🔐</span>
     <span class="logo-text">Wa<span class="logo-accent">ult</span></span>
   </div>
-
   <nav class="sidebar-nav">
     <a href="{% url 'home' %}" class="snav-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
-      <span class="snav-icon">🏠</span>
-      <span class="snav-label">Home</span>
+      <span class="snav-icon">🏠</span><span class="snav-label">Home</span>
     </a>
     <a href="{% url 'upload' %}" class="snav-item {% if request.resolver_match.url_name == 'upload' %}active{% endif %}">
-      <span class="snav-icon">⬆️</span>
-      <span class="snav-label">Upload</span>
+      <span class="snav-icon">⬆️</span><span class="snav-label">Upload</span>
     </a>
     <a href="{% url 'add_member' %}" class="snav-item {% if request.resolver_match.url_name == 'add_member' %}active{% endif %}">
-      <span class="snav-icon">👤</span>
-      <span class="snav-label">Add Member</span>
+      <span class="snav-icon">👤</span><span class="snav-label">Add Member</span>
     </a>
   </nav>
-
   <div class="sidebar-footer">
     <div class="sidebar-user">
       <div class="sidebar-avatar">{{ user.username|slice:":1"|upper }}</div>
@@ -42,7 +37,11 @@
         <div class="sidebar-role">Admin</div>
       </div>
     </div>
-    <a href="{% url 'logout' %}" class="logout-btn" title="Sign out">⏻</a>
+    <!-- Logout must be POST in Django 5 -->
+    <form method="post" action="{% url 'logout' %}">
+      {% csrf_token %}
+      <button type="submit" class="logout-btn" title="Sign out">⏻</button>
+    </form>
   </div>
 </aside>
 
@@ -63,14 +62,14 @@
     <a href="{% url 'home' %}" class="snav-item">🏠 Home</a>
     <a href="{% url 'upload' %}" class="snav-item">⬆️ Upload Document</a>
     <a href="{% url 'add_member' %}" class="snav-item">👤 Add Member</a>
-    <a href="{% url 'logout' %}" class="snav-item danger">⏻ Sign out</a>
+    <form method="post" action="{% url 'logout' %}" style="padding: 4px 12px;">
+      {% csrf_token %}
+      <button type="submit" class="snav-item danger" style="width:100%; background:none; border:none; cursor:pointer; text-align:left;">⏻ Sign out</button>
+    </form>
   </nav>
 </div>
 
-<!-- MAIN -->
 <main class="main-content">
-
-  <!-- Toast messages -->
   {% if messages %}
   <div class="toast-container">
     {% for message in messages %}
@@ -81,30 +80,25 @@
     {% endfor %}
   </div>
   {% endif %}
-
   {% block content %}{% endblock %}
 </main>
 
 <!-- BOTTOM NAV (Mobile) -->
 <nav class="bottom-nav">
   <a href="{% url 'home' %}" class="bnav-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
-    <span class="bnav-icon">🏠</span>
-    <span class="bnav-label">Home</span>
+    <span class="bnav-icon">🏠</span><span class="bnav-label">Home</span>
   </a>
   <a href="{% url 'home' %}" class="bnav-item">
-    <span class="bnav-icon">👥</span>
-    <span class="bnav-label">Members</span>
+    <span class="bnav-icon">👥</span><span class="bnav-label">Members</span>
   </a>
   <a href="{% url 'upload' %}" class="bnav-item upload-fab">
     <span class="fab-inner">＋</span>
   </a>
   <a href="#" class="bnav-item">
-    <span class="bnav-icon">📄</span>
-    <span class="bnav-label">Docs</span>
+    <span class="bnav-icon">📄</span><span class="bnav-label">Docs</span>
   </a>
   <a href="#" class="bnav-item" id="mobileMenuBtn">
-    <span class="bnav-icon">☰</span>
-    <span class="bnav-label">Menu</span>
+    <span class="bnav-icon">☰</span><span class="bnav-label">Menu</span>
   </a>
 </nav>
 

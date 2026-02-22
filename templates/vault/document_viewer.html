@@ -4,7 +4,6 @@
 {% block content %}
 <div class="page-content">
 
-  <!-- VIEWER HEADER -->
   <div class="viewer-header">
     <a href="{% url 'member_detail' doc.member.pk %}" class="back-btn">← {{ doc.member.display_name }}</a>
     <div class="viewer-title">
@@ -13,7 +12,6 @@
     </div>
   </div>
 
-  <!-- CLOUD STATUS -->
   <div class="cloud-status">
     <div class="cloud-dot"></div>
     <div class="cloud-text">
@@ -22,7 +20,6 @@
     </div>
   </div>
 
-  <!-- DOCUMENT PREVIEW -->
   <div class="doc-preview">
     <div class="preview-header">
       <span>Preview</span>
@@ -31,27 +28,15 @@
     <div class="preview-body">
       {% if doc.drive_file_id %}
         {% if doc.file_type == 'image' %}
-        <img
-          src="{{ doc.drive_thumbnail_url }}"
-          alt="{{ doc.name }}"
-          class="preview-img"
-          loading="lazy"
-          onerror="this.style.display='none'; document.getElementById('preview-fallback').style.display='flex';"
-        >
+        <img src="{{ doc.drive_thumbnail_url }}" alt="{{ doc.name }}" class="preview-img" loading="lazy"
+          onerror="this.style.display='none'; document.getElementById('preview-fallback').style.display='flex';">
         <div id="preview-fallback" class="preview-placeholder" style="display:none;">
           <span class="preview-big-emoji">{{ doc.category_emoji }}</span>
           <p>Preview not available</p>
           <a href="{{ doc.drive_view_url }}" target="_blank" class="btn-ghost">Open in Drive ↗</a>
         </div>
         {% else %}
-        <iframe
-          src="{{ doc.drive_preview_url }}"
-          class="preview-iframe"
-          title="{{ doc.name }} preview"
-          loading="lazy"
-          frameborder="0"
-          allowfullscreen
-        ></iframe>
+        <iframe src="{{ doc.drive_preview_url }}" class="preview-iframe" title="{{ doc.name }} preview" loading="lazy" frameborder="0" allowfullscreen></iframe>
         {% endif %}
       {% else %}
       <div class="preview-placeholder">
@@ -66,26 +51,24 @@
   <div class="doc-actions">
     {% if doc.drive_view_url %}
     <a href="{{ doc.drive_view_url }}" target="_blank" rel="noopener" class="action-btn">
-      <span class="action-icon">🔗</span>
-      <span class="action-label">Open Drive</span>
+      <span class="action-icon">🔗</span><span class="action-label">Open Drive</span>
     </a>
     {% endif %}
     {% if doc.drive_file_id %}
     <a href="{% url 'document_download' doc.pk %}" class="action-btn">
-      <span class="action-icon">⬇️</span>
-      <span class="action-label">Download</span>
+      <span class="action-icon">⬇️</span><span class="action-label">Download</span>
     </a>
+    {% if doc.file_type == 'image' %}
+    <button class="action-btn" onclick="document.getElementById('convertModal').classList.add('active')">
+      <span class="action-icon">🔄</span><span class="action-label">Convert</span>
+    </button>
+    {% endif %}
     {% endif %}
     <a href="{% url 'document_rename' doc.pk %}" class="action-btn">
-      <span class="action-icon">✏️</span>
-      <span class="action-label">Edit</span>
+      <span class="action-icon">✏️</span><span class="action-label">Edit</span>
     </a>
-    <button
-      class="action-btn action-btn-danger"
-      onclick="confirmDelete()"
-    >
-      <span class="action-icon">🗑️</span>
-      <span class="action-label">Delete</span>
+    <button class="action-btn action-btn-danger" onclick="document.getElementById('deleteModal').classList.add('active')">
+      <span class="action-icon">🗑️</span><span class="action-label">Delete</span>
     </button>
   </div>
 
@@ -95,9 +78,7 @@
     <div class="info-rows">
       <div class="info-row">
         <span class="info-label">Member</span>
-        <span class="info-value">
-          <a href="{% url 'member_detail' doc.member.pk %}">{{ doc.member.display_name }} ({{ doc.member.name }})</a>
-        </span>
+        <span class="info-value"><a href="{% url 'member_detail' doc.member.pk %}">{{ doc.member.display_name }} ({{ doc.member.name }})</a></span>
       </div>
       <div class="info-row">
         <span class="info-label">Category</span>
@@ -115,12 +96,8 @@
         <span class="info-label">Added</span>
         <span class="info-value">{{ doc.created_at|date:"d M Y, h:i A" }}</span>
       </div>
-      <div class="info-row">
-        <span class="info-label">Updated</span>
-        <span class="info-value">{{ doc.updated_at|date:"d M Y, h:i A" }}</span>
-      </div>
       {% if doc.notes %}
-      <div class="info-row" style="flex-direction: column; gap: 6px; align-items: flex-start;">
+      <div class="info-row" style="flex-direction:column; gap:6px; align-items:flex-start;">
         <span class="info-label">Notes</span>
         <span class="info-value">{{ doc.notes }}</span>
       </div>
@@ -130,15 +107,53 @@
 
 </div>
 
-<!-- Delete confirmation modal -->
+<!-- ── CONVERT MODAL ── -->
+<div class="modal-overlay" id="convertModal">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-icon">🔄</div>
+    <h3 class="modal-title">Convert & Download</h3>
+    <p class="modal-body">Convert this image to a different format or reduce its file size. The original in Google Drive is unchanged.</p>
+    <form method="post" action="{% url 'document_convert' doc.pk %}" class="upload-form" style="text-align:left; padding:0; gap:14px;">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Output Format</label>
+        <select name="format" class="form-select">
+          <option value="jpeg">JPEG (smaller size, no transparency)</option>
+          <option value="png">PNG (lossless, supports transparency)</option>
+          <option value="webp">WebP (best compression, modern)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Target File Size</label>
+        <select name="size_kb" class="form-select">
+          <option value="0">Original quality</option>
+          <option value="500">~500 KB</option>
+          <option value="200" selected>~200 KB</option>
+          <option value="100">~100 KB</option>
+          <option value="50">~50 KB</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Max Width <span style="color:var(--muted);font-weight:400">(pixels, optional)</span></label>
+        <input type="number" name="max_width" class="form-input" placeholder="e.g. 1920 — leave blank to keep original">
+      </div>
+      <div style="display:flex; gap:10px; margin-top:4px;">
+        <button type="button" class="btn-ghost" style="flex:1;" onclick="document.getElementById('convertModal').classList.remove('active')">Cancel</button>
+        <button type="submit" class="submit-btn" style="flex:2;">Convert & Download</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── DELETE MODAL ── -->
 <div class="modal-overlay" id="deleteModal">
   <div class="modal">
     <div class="modal-icon">🗑️</div>
     <h3 class="modal-title">Delete Document?</h3>
     <p class="modal-body">This will permanently delete <strong>{{ doc.name }}</strong> from the vault and Google Drive. This cannot be undone.</p>
     <div class="modal-actions">
-      <button class="btn-ghost" onclick="closeModal()">Cancel</button>
-      <form method="post" action="{% url 'document_delete' doc.pk %}" style="display:inline;">
+      <button class="btn-ghost" onclick="document.getElementById('deleteModal').classList.remove('active')">Cancel</button>
+      <form method="post" action="{% url 'document_delete' doc.pk %}">
         {% csrf_token %}
         <button type="submit" class="btn-danger">Delete</button>
       </form>
@@ -147,14 +162,10 @@
 </div>
 
 <script>
-function confirmDelete() {
-  document.getElementById('deleteModal').classList.add('active');
-}
-function closeModal() {
-  document.getElementById('deleteModal').classList.remove('active');
-}
-document.getElementById('deleteModal').addEventListener('click', function(e) {
-  if (e.target === this) closeModal();
+document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
+  overlay.addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('active');
+  });
 });
 </script>
 {% endblock %}

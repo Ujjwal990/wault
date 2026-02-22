@@ -3,8 +3,14 @@ from .models import FamilyMember, Document, CATEGORY_CHOICES, FILE_TYPE_CHOICES
 
 
 class DocumentUploadForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields['member'].queryset = FamilyMember.objects.filter(owner=user)
+
     member = forms.ModelChoiceField(
-        queryset=FamilyMember.objects.all(),
+        queryset=FamilyMember.objects.none(),
         empty_label=None,
         widget=forms.Select(attrs={'class': 'form-select'}),
     )
@@ -21,7 +27,6 @@ class DocumentUploadForm(forms.Form):
     )
     file_type = forms.ChoiceField(
         choices=FILE_TYPE_CHOICES,
-        widget=forms.RadioSelect(attrs={'class': 'type-radio'}),
         initial='image',
     )
     file = forms.FileField(
@@ -38,13 +43,11 @@ class DocumentUploadForm(forms.Form):
 
     def clean_file(self):
         f = self.cleaned_data['file']
-        max_size = 10 * 1024 * 1024  # 10 MB
-        if f.size > max_size:
+        if f.size > 10 * 1024 * 1024:
             raise forms.ValidationError("File too large. Maximum size is 10 MB.")
-        allowed = ['.jpg', '.jpeg', '.png', '.pdf']
         ext = '.' + f.name.rsplit('.', 1)[-1].lower()
-        if ext not in allowed:
-            raise forms.ValidationError(f"Unsupported file type. Allowed: {', '.join(allowed)}")
+        if ext not in ['.jpg', '.jpeg', '.png', '.pdf']:
+            raise forms.ValidationError("Unsupported file type. Allowed: JPG, PNG, PDF.")
         return f
 
 
