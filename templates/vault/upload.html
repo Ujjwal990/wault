@@ -85,7 +85,7 @@
     <div class="form-group">
       <label class="form-label">File</label>
       <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
-        <input type="file" id="fileInput" name="file" accept=".jpg,.jpeg,.png,.pdf" style="display:none" required>
+        <input type="file" id="fileInput" name="file" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" style="display:none" required>
         <div class="drop-content" id="dropContent">
           <div class="drop-icon">☁️</div>
           <div class="drop-text">Tap to upload or drag & drop</div>
@@ -171,13 +171,22 @@ document.getElementById('uploadForm').addEventListener('submit', function() {
   }, 400);
 });
 
-// Type toggle styling
+// Type toggle styling + update file accept filter
+const acceptMap = {
+  image: '.jpg,.jpeg,.png',
+  pdf: '.pdf',
+  word: '.doc,.docx',
+};
 document.querySelectorAll('.type-btn input').forEach(radio => {
   radio.addEventListener('change', function() {
     document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
     this.closest('.type-btn').classList.add('active');
+    fileInput.accept = acceptMap[this.value] || '.jpg,.jpeg,.png,.pdf,.doc,.docx';
   });
-  if (radio.checked) radio.closest('.type-btn').classList.add('active');
+  if (radio.checked) {
+    radio.closest('.type-btn').classList.add('active');
+    fileInput.accept = acceptMap[radio.value] || '.jpg,.jpeg,.png,.pdf,.doc,.docx';
+  }
 });
 </script>
 {% endblock %}
