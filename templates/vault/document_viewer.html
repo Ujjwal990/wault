@@ -55,9 +55,12 @@
     </a>
     {% endif %}
     {% if doc.drive_file_id %}
-    <a href="{% url 'document_download' doc.pk %}" class="action-btn">
-      <span class="action-icon">⬇️</span><span class="action-label">Download</span>
-    </a>
+    <button class="action-btn" id="downloadBtn"
+      onclick="checkAndDownload('{{ doc.pk }}', '{{ doc.name|escapejs }}', '{% url 'document_download' doc.pk %}')">
+      <span class="action-icon">⬇️</span>
+      <span class="action-label">Download</span>
+      <span class="dl-badge" id="dlBadge" style="display:none;"></span>
+    </button>
     {% if doc.file_type == 'image' %}
     <button class="action-btn" onclick="document.getElementById('convertModal').classList.add('active')">
       <span class="action-icon">🔄</span><span class="action-label">Convert</span>
@@ -161,7 +164,79 @@
   </div>
 </div>
 
+<!-- ── ALREADY DOWNLOADED MODAL ── -->
+<div class="modal-overlay" id="alreadyDownloadedModal">
+  <div class="modal">
+    <div class="modal-icon">📥</div>
+    <h3 class="modal-title">Already Downloaded</h3>
+    <p class="modal-body" id="already-downloaded-info"></p>
+    <p class="modal-body" style="margin-top:-12px; font-size:13px;">The file may already be in your Downloads folder. Download again?</p>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="document.getElementById('alreadyDownloadedModal').classList.remove('active')">Cancel</button>
+      <button class="btn-primary" id="confirmDownloadBtn">Download Again</button>
+    </div>
+  </div>
+</div>
+
 <script>
+const DOWNLOADS_KEY = 'wault_downloads';
+
+function getDownloads() {
+  try { return JSON.parse(localStorage.getItem(DOWNLOADS_KEY) || '{}'); }
+  catch { return {}; }
+}
+
+function recordDownload(docId, docName) {
+  const downloads = getDownloads();
+  const existing = downloads[docId] || { count: 0 };
+  downloads[docId] = {
+    name: docName,
+    downloadedAt: new Date().toISOString(),
+    firstDownloadedAt: existing.firstDownloadedAt || new Date().toISOString(),
+    count: existing.count + 1,
+  };
+  localStorage.setItem(DOWNLOADS_KEY, JSON.stringify(downloads));
+}
+
+function proceedDownload(docId, docName, url) {
+  recordDownload(docId, docName);
+  updateBadge(docId);
+  window.location.href = url;
+}
+
+function checkAndDownload(docId, docName, url) {
+  const existing = getDownloads()[docId];
+  if (existing) {
+    const date = new Date(existing.downloadedAt).toLocaleDateString('en-IN', {
+      day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+    const count = existing.count;
+    document.getElementById('already-downloaded-info').textContent =
+      `Last downloaded on ${date} · ${count} time${count > 1 ? 's' : ''} on this device.`;
+    document.getElementById('alreadyDownloadedModal').classList.add('active');
+    document.getElementById('confirmDownloadBtn').onclick = function () {
+      document.getElementById('alreadyDownloadedModal').classList.remove('active');
+      proceedDownload(docId, docName, url);
+    };
+  } else {
+    proceedDownload(docId, docName, url);
+  }
+}
+
+function updateBadge(docId) {
+  const existing = getDownloads()[docId];
+  const badge = document.getElementById('dlBadge');
+  const btn = document.getElementById('downloadBtn');
+  if (existing && badge) {
+    badge.textContent = existing.count;
+    badge.style.display = 'inline-block';
+    btn.title = `Downloaded ${existing.count} time(s) on this device`;
+  }
+}
+
+// On page load — show badge if already downloaded
+updateBadge('{{ doc.pk }}');
+
 document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
   overlay.addEventListener('click', function(e) {
     if (e.target === this) this.classList.remove('active');
