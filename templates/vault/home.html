@@ -9,7 +9,7 @@
     <div class="hero-inner">
       <p class="greeting">Welcome,</p>
       <h1 class="home-title">{{ FAMILY_NAME }} 🏡</h1>
-      <p class="home-subtitle">{{ members.count }} member{{ members.count|pluralize }} · {{ total_docs }} document{{ total_docs|pluralize }}</p>
+      <p class="home-subtitle">{{ members.count }} member{{ members.count|pluralize }} &middot; {{ total_docs }} document{{ total_docs|pluralize }}</p>
     </div>
   </div>
 
@@ -62,7 +62,11 @@
   <div class="members-scroll">
     {% for member in members %}
     <a href="{% url 'member_detail' member.pk %}" class="member-card">
-      <div class="avatar avatar-{{ member.avatar_color }}">{{ member.avatar_letter }}</div>
+      {% if member.photo %}
+      <img src="{{ member.photo.url }}" class="avatar avatar-photo" alt="{{ member.display_name }}">
+      {% else %}
+      <div class="avatar avatar-{{ member.avatar_color }}">{{ member.get_initials }}</div>
+      {% endif %}
       <div class="member-name">{{ member.display_name }}</div>
       <div class="member-count">{{ member.doc_count_ann }} doc{{ member.doc_count_ann|pluralize }}</div>
     </a>

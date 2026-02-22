@@ -29,7 +29,14 @@ CATEGORY_META = {
 FILE_TYPE_CHOICES = [
     ('image', 'Image'),
     ('pdf', 'PDF'),
+    ('word', 'Word Document'),
 ]
+
+FILE_TYPE_ICONS = {
+    'image': '🖼️',
+    'pdf':   '📄',
+    'word':  '📝',
+}
 
 
 class FamilyMember(models.Model):
@@ -41,8 +48,9 @@ class FamilyMember(models.Model):
     )
     name = models.CharField(max_length=100)
     display_name = models.CharField(max_length=50)
-    avatar_letter = models.CharField(max_length=2)
+    avatar_letter = models.CharField(max_length=3, blank=True)
     avatar_color = models.CharField(max_length=20, choices=AVATAR_COLORS, default='purple')
+    photo = models.ImageField(upload_to='avatars/', blank=True, null=True)
     order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -52,14 +60,22 @@ class FamilyMember(models.Model):
     def __str__(self):
         return f"{self.display_name} ({self.name})"
 
+    def get_initials(self):
+        """Auto-generate 2-letter initials from name, or use avatar_letter if set."""
+        if self.avatar_letter:
+            return self.avatar_letter.upper()
+        parts = self.name.strip().split()
+        if len(parts) >= 2:
+            return (parts[0][0] + parts[-1][0]).upper()
+        elif parts:
+            return parts[0][:2].upper()
+        return '?'
+
     def doc_count(self):
         return self.documents.count()
 
     def category_counts(self):
-        counts = {}
-        for cat, _ in CATEGORY_CHOICES:
-            counts[cat] = self.documents.filter(category=cat).count()
-        return counts
+        return {cat: self.documents.filter(category=cat).count() for cat, _ in CATEGORY_CHOICES}
 
 
 class Document(models.Model):
@@ -86,6 +102,9 @@ class Document(models.Model):
     def category_label(self):
         return CATEGORY_META.get(self.category, {}).get('label', 'Other')
 
+    def file_type_icon(self):
+        return FILE_TYPE_ICONS.get(self.file_type, '📄')
+
     def file_size_display(self):
         if self.file_size < 1024:
             return f"{self.file_size} B"
@@ -100,6 +119,7 @@ class Document(models.Model):
         return None
 
     def drive_preview_url(self):
+        # Works for images, PDFs, and Word docs (Google Drive renders all)
         if self.drive_file_id:
             return f"https://drive.google.com/file/d/{self.drive_file_id}/preview"
         return None

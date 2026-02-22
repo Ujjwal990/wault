@@ -56,9 +56,9 @@
     {% endif %}
     {% if doc.drive_file_id %}
     <button class="action-btn" id="downloadBtn"
-      onclick="checkAndDownload('{{ doc.pk }}', '{{ doc.name|escapejs }}', '{% url 'document_download' doc.pk %}')">
-      <span class="action-icon">⬇️</span>
-      <span class="action-label">Download</span>
+      onclick="checkAndDownload('{{ doc.pk }}', '{% url 'document_download' doc.pk %}')">
+      <span class="action-icon" id="dlIcon">⬇️</span>
+      <span class="action-label" id="dlLabel">Download</span>
       <span class="dl-badge" id="dlBadge" style="display:none;"></span>
     </button>
     {% if doc.file_type == 'image' %}
@@ -179,64 +179,161 @@
 </div>
 
 <script>
-const DOWNLOADS_KEY = 'wault_downloads';
+// ── PERSISTENT DOWNLOAD TRACKER ──────────────────────────────────────────────
+// Uses localStorage for download records (survives redeployments forever).
+// Uses IndexedDB to persist the Downloads folder handle across sessions.
+// Uses File System Access API to physically check if the file still exists.
+// Falls back gracefully on unsupported browsers (Firefox, Safari, iOS).
 
-function getDownloads() {
-  try { return JSON.parse(localStorage.getItem(DOWNLOADS_KEY) || '{}'); }
-  catch { return {}; }
+const DL_KEY = 'wault_downloads';
+const IDB_NAME = 'wault_fs_v1';
+
+// ── IndexedDB helpers (stores the Downloads folder handle) ──
+function openIDB() {
+  return new Promise((resolve) => {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('handles');
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = () => resolve(null);
+  });
+}
+async function saveDirHandle(handle) {
+  const db = await openIDB(); if (!db) return;
+  const tx = db.transaction('handles', 'readwrite');
+  tx.objectStore('handles').put(handle, 'downloads');
+}
+async function getDirHandle() {
+  const db = await openIDB(); if (!db) return null;
+  return new Promise(resolve => {
+    const tx = db.transaction('handles', 'readonly');
+    const req = tx.objectStore('handles').get('downloads');
+    req.onsuccess = e => resolve(e.target.result || null);
+    req.onerror = () => resolve(null);
+  });
 }
 
-function recordDownload(docId, docName) {
-  const downloads = getDownloads();
-  const existing = downloads[docId] || { count: 0 };
-  downloads[docId] = {
-    name: docName,
-    downloadedAt: new Date().toISOString(),
-    firstDownloadedAt: existing.firstDownloadedAt || new Date().toISOString(),
-    count: existing.count + 1,
-  };
-  localStorage.setItem(DOWNLOADS_KEY, JSON.stringify(downloads));
+// ── localStorage helpers ──
+function getRecord(docId) {
+  try { return JSON.parse(localStorage.getItem(DL_KEY) || '{}')[docId] || null; }
+  catch { return null; }
+}
+function saveRecord(docId, filename) {
+  try {
+    const all = JSON.parse(localStorage.getItem(DL_KEY) || '{}');
+    const prev = all[docId] || { count: 0 };
+    all[docId] = {
+      filename,
+      downloadedAt: new Date().toISOString(),
+      firstDownloadedAt: prev.firstDownloadedAt || new Date().toISOString(),
+      count: prev.count + 1,
+    };
+    localStorage.setItem(DL_KEY, JSON.stringify(all));
+  } catch {}
 }
 
-function proceedDownload(docId, docName, url) {
-  recordDownload(docId, docName);
-  updateBadge(docId);
-  window.location.href = url;
+// ── Fetch + trigger download (captures real filename from server) ──
+async function fetchAndSave(docId, url) {
+  const btn = document.getElementById('downloadBtn');
+  const icon = document.getElementById('dlIcon');
+  const label = document.getElementById('dlLabel');
+  btn.disabled = true;
+  icon.textContent = '⏳';
+  label.textContent = 'Downloading…';
+
+  try {
+    const resp = await fetch(url);
+    const disposition = resp.headers.get('Content-Disposition') || '';
+    const match = disposition.match(/filename[^;=\n]*=\s*(?:UTF-8''|"?)([^";\n]*)"?/i);
+    const filename = match ? decodeURIComponent(match[1]) : `document_${docId}`;
+
+    const blob = await resp.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl; a.download = filename; a.click();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+
+    saveRecord(docId, filename);
+    updateBadge(docId);
+  } catch (e) {
+    alert('Download failed: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    icon.textContent = '⬇️';
+    label.textContent = 'Download';
+  }
 }
 
-function checkAndDownload(docId, docName, url) {
-  const existing = getDownloads()[docId];
-  if (existing) {
-    const date = new Date(existing.downloadedAt).toLocaleDateString('en-IN', {
+// ── Check if file physically exists in Downloads folder ──
+async function fileExistsInDownloads(filename) {
+  if (!window.showDirectoryPicker) return null; // API not supported
+
+  try {
+    let handle = await getDirHandle();
+
+    if (handle) {
+      // Try with existing stored handle
+      let perm = await handle.queryPermission({ mode: 'read' });
+      if (perm !== 'granted') perm = await handle.requestPermission({ mode: 'read' });
+      if (perm === 'granted') {
+        try { await handle.getFileHandle(filename); return true; }
+        catch { return false; }
+      }
+    }
+
+    // No stored handle — ask user to select Downloads folder once
+    handle = await window.showDirectoryPicker({ startIn: 'downloads', mode: 'read' });
+    await saveDirHandle(handle);
+    try { await handle.getFileHandle(filename); return true; }
+    catch { return false; }
+
+  } catch {
+    return null; // user cancelled or permission denied
+  }
+}
+
+// ── Main entry point ──
+async function checkAndDownload(docId, url) {
+  const record = getRecord(docId);
+
+  if (!record) {
+    // Never downloaded on this device — download directly, no questions
+    await fetchAndSave(docId, url);
+    return;
+  }
+
+  // Downloaded before — check if the file still physically exists
+  const exists = await fileExistsInDownloads(record.filename);
+
+  if (exists === true) {
+    // File is actually there — ask before downloading again
+    const date = new Date(record.downloadedAt).toLocaleDateString('en-IN', {
       day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
     });
-    const count = existing.count;
     document.getElementById('already-downloaded-info').textContent =
-      `Last downloaded on ${date} · ${count} time${count > 1 ? 's' : ''} on this device.`;
+      `"${record.filename}" is still in your Downloads folder · Last saved on ${date}.`;
     document.getElementById('alreadyDownloadedModal').classList.add('active');
-    document.getElementById('confirmDownloadBtn').onclick = function () {
+    document.getElementById('confirmDownloadBtn').onclick = async function () {
       document.getElementById('alreadyDownloadedModal').classList.remove('active');
-      proceedDownload(docId, docName, url);
+      await fetchAndSave(docId, url);
     };
   } else {
-    proceedDownload(docId, docName, url);
+    // File was deleted or couldn't check (unsupported/cancelled) — just download
+    await fetchAndSave(docId, url);
   }
 }
 
+// ── Badge ──
 function updateBadge(docId) {
-  const existing = getDownloads()[docId];
+  const record = getRecord(docId);
   const badge = document.getElementById('dlBadge');
-  const btn = document.getElementById('downloadBtn');
-  if (existing && badge) {
-    badge.textContent = existing.count;
+  if (record && badge) {
+    badge.textContent = record.count;
     badge.style.display = 'inline-block';
-    btn.title = `Downloaded ${existing.count} time(s) on this device`;
   }
 }
-
-// On page load — show badge if already downloaded
 updateBadge('{{ doc.pk }}');
 
+// ── Close modals on backdrop click ──
 document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
   overlay.addEventListener('click', function(e) {
     if (e.target === this) this.classList.remove('active');

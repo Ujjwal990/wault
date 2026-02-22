@@ -8,9 +8,16 @@
   <div class="member-hero">
     <a href="{% url 'home' %}" class="back-btn">← Back</a>
     <div class="member-hero-inner">
-      <div class="avatar avatar-{{ member.avatar_color }} avatar-lg">{{ member.avatar_letter }}</div>
+      {% if member.photo %}
+      <img src="{{ member.photo.url }}" class="avatar avatar-photo avatar-lg" alt="{{ member.display_name }}">
+      {% else %}
+      <div class="avatar avatar-{{ member.avatar_color }} avatar-lg">{{ member.get_initials }}</div>
+      {% endif %}
       <div class="member-hero-info">
-        <h1 class="member-hero-name">{{ member.display_name }}</h1>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <h1 class="member-hero-name">{{ member.display_name }}</h1>
+          <a href="{% url 'edit_member' member.pk %}" class="edit-member-btn" title="Edit member">✏️</a>
+        </div>
         <p class="member-hero-full">{{ member.name }}</p>
         <p class="member-hero-sub">{{ member.doc_count }} document{{ member.doc_count|pluralize }} · Last updated {{ member.documents.first.updated_at|timesince|default:"never" }} ago</p>
       </div>

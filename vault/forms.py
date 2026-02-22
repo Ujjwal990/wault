@@ -1,6 +1,8 @@
 from django import forms
 from .models import FamilyMember, Document, CATEGORY_CHOICES, FILE_TYPE_CHOICES
 
+ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.pdf', '.doc', '.docx']
+
 
 class DocumentUploadForm(forms.Form):
     def __init__(self, *args, **kwargs):
@@ -22,15 +24,15 @@ class DocumentUploadForm(forms.Form):
         max_length=200,
         widget=forms.TextInput(attrs={
             'class': 'form-input',
-            'placeholder': 'e.g. Aadhaar Card, CGHS Card…',
+            'placeholder': 'e.g. Aadhaar Card, Resume, CGHS Card…',
         }),
     )
-    file_type = forms.ChoiceField(
-        choices=FILE_TYPE_CHOICES,
-        initial='image',
-    )
+    file_type = forms.ChoiceField(choices=FILE_TYPE_CHOICES, initial='image')
     file = forms.FileField(
-        widget=forms.FileInput(attrs={'class': 'file-input', 'accept': '.jpg,.jpeg,.png,.pdf'}),
+        widget=forms.FileInput(attrs={
+            'class': 'file-input',
+            'accept': '.jpg,.jpeg,.png,.pdf,.doc,.docx',
+        }),
     )
     notes = forms.CharField(
         required=False,
@@ -46,20 +48,26 @@ class DocumentUploadForm(forms.Form):
         if f.size > 10 * 1024 * 1024:
             raise forms.ValidationError("File too large. Maximum size is 10 MB.")
         ext = '.' + f.name.rsplit('.', 1)[-1].lower()
-        if ext not in ['.jpg', '.jpeg', '.png', '.pdf']:
-            raise forms.ValidationError("Unsupported file type. Allowed: JPG, PNG, PDF.")
+        if ext not in ALLOWED_EXTENSIONS:
+            raise forms.ValidationError(
+                f"Unsupported file type. Allowed: JPG, PNG, PDF, DOC, DOCX."
+            )
         return f
 
 
 class FamilyMemberForm(forms.ModelForm):
     class Meta:
         model = FamilyMember
-        fields = ['display_name', 'name', 'avatar_letter', 'avatar_color']
+        fields = ['display_name', 'name', 'avatar_letter', 'avatar_color', 'photo']
         widgets = {
             'display_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. Papa, Mummy'}),
             'name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. Rajesh Sharma'}),
-            'avatar_letter': forms.TextInput(attrs={'class': 'form-input', 'maxlength': '2', 'placeholder': 'R'}),
+            'avatar_letter': forms.TextInput(attrs={
+                'class': 'form-input', 'maxlength': '3',
+                'placeholder': 'e.g. RS (leave blank to auto-generate)',
+            }),
             'avatar_color': forms.Select(attrs={'class': 'form-select'}),
+            'photo': forms.FileInput(attrs={'class': 'file-input', 'accept': 'image/*'}),
         }
 
 

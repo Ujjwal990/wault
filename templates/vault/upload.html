@@ -64,13 +64,18 @@
       <div class="type-toggle">
         <label class="type-btn">
           <input type="radio" name="file_type" value="image"
-            {% if form.file_type.value != 'pdf' %}checked{% endif %}
+            {% if not form.file_type.value or form.file_type.value == 'image' %}checked{% endif %}
           > 🖼 Image
         </label>
         <label class="type-btn">
           <input type="radio" name="file_type" value="pdf"
             {% if form.file_type.value == 'pdf' %}checked{% endif %}
           > 📄 PDF
+        </label>
+        <label class="type-btn">
+          <input type="radio" name="file_type" value="word"
+            {% if form.file_type.value == 'word' %}checked{% endif %}
+          > 📝 Word
         </label>
       </div>
       {% if form.file_type.errors %}<div class="form-error">{{ form.file_type.errors.0 }}</div>{% endif %}
@@ -84,7 +89,7 @@
         <div class="drop-content" id="dropContent">
           <div class="drop-icon">☁️</div>
           <div class="drop-text">Tap to upload or drag & drop</div>
-          <div class="drop-sub">JPG, PNG, PDF · Max 10 MB</div>
+          <div class="drop-sub">JPG, PNG, PDF, DOC, DOCX · Max 10 MB</div>
         </div>
         <div class="drop-selected" id="dropSelected" style="display:none;">
           <span class="drop-file-icon">📄</span>

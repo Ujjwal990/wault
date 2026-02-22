@@ -304,8 +304,9 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   padding: 32px 24px 24px;
   background: radial-gradient(ellipse 90% 70% at 50% -10%, rgba(108,99,255,0.13), transparent);
 }
-.greeting { font-size: 13px; color: var(--muted); margin-bottom: 2px; }
+.greeting { font-size: 16px; color: var(--muted); margin-bottom: 2px; }
 .home-title { font-size: 28px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.5px; }
+.home-title::before { content: ''; }
 .home-subtitle { font-size: 13px; color: var(--muted); }
 
 /* ── SEARCH ── */
@@ -702,6 +703,53 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 .color-swatch-green  { background: rgba(67,217,173,0.15); color: #6ee7b7; }
 .color-swatch-gold   { background: rgba(245,200,66,0.15); color: #fde68a; }
 .color-swatch-blue   { background: rgba(56,189,248,0.15); color: #7dd3fc; }
+
+/* ── AVATAR PHOTO ── */
+.avatar-photo {
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+/* ── PHOTO UPLOAD ── */
+.photo-drop {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  text-align: center;
+  cursor: pointer;
+  background: var(--s2);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
+}
+.photo-drop:hover { border-color: var(--accent); background: var(--accent-d); }
+.photo-preview-wrap { display: flex; justify-content: center; }
+.photo-preview-img {
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--accent);
+}
+.current-photo {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 10px;
+}
+.current-photo-img {
+  width: 56px; height: 56px;
+  border-radius: 50%; object-fit: cover;
+  border: 2px solid var(--border2);
+}
+.current-photo-label { font-size: 12px; color: var(--muted); }
+
+.edit-member-btn {
+  font-size: 16px; padding: 4px 8px;
+  border-radius: 8px; background: var(--s2);
+  border: 1px solid var(--border);
+  cursor: pointer; transition: all 0.18s;
+}
+.edit-member-btn:hover { background: var(--s3); border-color: var(--border2); }
 
 /* ── EMPTY STATE ── */
 .empty-state {

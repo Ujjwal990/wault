@@ -98,7 +98,7 @@ def member_detail(request, pk):
 @login_required
 def add_member(request):
     if request.method == 'POST':
-        form = FamilyMemberForm(request.POST)
+        form = FamilyMemberForm(request.POST, request.FILES)
         if form.is_valid():
             member = form.save(commit=False)
             member.owner = request.user
@@ -108,7 +108,21 @@ def add_member(request):
             return redirect('home')
     else:
         form = FamilyMemberForm()
-    return render(request, 'vault/add_member.html', {'form': form})
+    return render(request, 'vault/add_member.html', {'form': form, 'editing': False})
+
+
+@login_required
+def edit_member(request, pk):
+    member = get_object_or_404(FamilyMember, pk=pk, owner=request.user)
+    if request.method == 'POST':
+        form = FamilyMemberForm(request.POST, request.FILES, instance=member)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'{member.display_name} updated!')
+            return redirect('member_detail', pk=member.pk)
+    else:
+        form = FamilyMemberForm(instance=member)
+    return render(request, 'vault/add_member.html', {'form': form, 'editing': True, 'member': member})
 
 
 # ── DOCUMENT ──────────────────────────────────────

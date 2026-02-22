@@ -1,16 +1,38 @@
 {% extends 'base.html' %}
-{% block title %}Add Member{% endblock %}
+{% block title %}{% if editing %}Edit {{ member.display_name }}{% else %}Add Member{% endif %}{% endblock %}
 
 {% block content %}
 <div class="page-content">
   <div class="upload-header">
     <a href="{% url 'home' %}" class="back-btn">← Back</a>
-    <h1>Add Family Member</h1>
-    <p>Add a new member to your vault</p>
+    <h1>{% if editing %}Edit {{ member.display_name }}{% else %}Add Family Member{% endif %}</h1>
+    <p>{% if editing %}Update member details or profile photo{% else %}Add a new member to your vault{% endif %}</p>
   </div>
 
-  <form method="post" class="upload-form">
+  <form method="post" enctype="multipart/form-data" class="upload-form">
     {% csrf_token %}
+
+    <!-- Profile Photo -->
+    <div class="form-group">
+      <label class="form-label">Profile Photo <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+      {% if editing and member.photo %}
+      <div class="current-photo">
+        <img src="{{ member.photo.url }}" alt="{{ member.display_name }}" class="current-photo-img">
+        <span class="current-photo-label">Current photo</span>
+      </div>
+      {% endif %}
+      <div class="photo-drop" id="photoDrop" onclick="document.getElementById('photoInput').click()">
+        <input type="file" id="photoInput" name="photo" accept="image/*" style="display:none">
+        <div class="photo-preview-wrap" id="photoPreviewWrap" style="display:none;">
+          <img id="photoPreview" src="" alt="Preview" class="photo-preview-img">
+        </div>
+        <div class="drop-content" id="photoDropContent">
+          <div class="drop-icon">🤳</div>
+          <div class="drop-text">Tap to upload photo</div>
+          <div class="drop-sub">JPG, PNG — will be cropped to circle</div>
+        </div>
+      </div>
+    </div>
 
     <div class="form-group">
       <label class="form-label">Display Name</label>
@@ -29,28 +51,44 @@
     </div>
 
     <div class="form-group">
-      <label class="form-label">Avatar Letter</label>
+      <label class="form-label">Initials <span style="color:var(--muted);font-weight:400">(auto-generated if blank)</span></label>
       <input type="text" name="avatar_letter" class="form-input"
         value="{{ form.avatar_letter.value|default:'' }}"
-        placeholder="R" maxlength="2" required>
-      <p style="font-size:12px; color:var(--muted); margin-top:6px;">First letter of the name (shown on avatar)</p>
+        placeholder="e.g. RS for Rajesh Sharma" maxlength="3">
+      <p style="font-size:12px; color:var(--muted); margin-top:6px;">Shown on avatar when no photo is set</p>
     </div>
 
     <div class="form-group">
-      <label class="form-label">Avatar Color</label>
+      <label class="form-label">Avatar Color <span style="color:var(--muted);font-weight:400">(used when no photo)</span></label>
       <div class="color-pick">
         {% for val, label in form.fields.avatar_color.choices %}
         <label class="color-pick-item">
           <input type="radio" name="avatar_color" value="{{ val }}"
-            {% if form.avatar_color.value == val or not form.avatar_color.value and val == 'purple' %}checked{% endif %}
-          >
+            {% if form.avatar_color.value == val or not form.avatar_color.value and val == 'purple' %}checked{% endif %}>
           <div class="color-swatch color-swatch-{{ val }}">{{ label }}</div>
         </label>
         {% endfor %}
       </div>
     </div>
 
-    <button type="submit" class="submit-btn">Add Member</button>
+    <button type="submit" class="submit-btn">
+      {% if editing %}Save Changes{% else %}Add Member{% endif %}
+    </button>
   </form>
 </div>
+
+<script>
+const photoInput = document.getElementById('photoInput');
+photoInput.addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('photoPreview').src = e.target.result;
+    document.getElementById('photoPreviewWrap').style.display = 'flex';
+    document.getElementById('photoDropContent').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+});
+</script>
 {% endblock %}
