@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="page-content">
+
+  <!-- HERO -->
+  <div class="home-hero">
+    <div class="hero-inner">
+      <p class="greeting">Welcome,</p>
+      <h1 class="home-title">{{ FAMILY_NAME }} 🏡</h1>
+      <p class="home-subtitle">{{ members.count }} member{{ members.count|pluralize }} · {{ total_docs }} document{{ total_docs|pluralize }}</p>
+    </div>
+  </div>
+
+  <!-- SEARCH -->
+  <div class="search-wrap">
+    <form method="get" class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input
+        type="text"
+        name="q"
+        value="{{ query }}"
+        placeholder="Search any document…"
+        autocomplete="off"
+      >
+      {% if query %}
+      <a href="{% url 'home' %}" class="search-clear">✕</a>
+      {% endif %}
+    </form>
+  </div>
+
+  {% if query %}
+  <!-- SEARCH RESULTS -->
+  <div class="section-header">
+    <p class="section-title">Results for "{{ query }}"</p>
+    <span class="section-badge">{{ search_results.count }}</span>
+  </div>
+  <div class="doc-list">
+    {% for doc in search_results %}
+    <a href="{% url 'document_viewer' doc.pk %}" class="doc-item">
+      <div class="doc-icon doc-icon-{{ doc.category }}">{{ doc.category_emoji }}</div>
+      <div class="doc-meta">
+        <div class="doc-name">{{ doc.name }}</div>
+        <div class="doc-info">{{ doc.member.display_name }} · {{ doc.get_category_display }}</div>
+      </div>
+      <span class="doc-arrow">›</span>
+    </a>
+    {% empty %}
+    <div class="empty-state">
+      <div class="empty-icon">🔍</div>
+      <div class="empty-title">No results found</div>
+      <div class="empty-sub">Try a different keyword</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+
+  <!-- MEMBERS -->
+  <p class="section-title" style="padding: 0 24px; margin-bottom: 14px;">Family Members</p>
+  <div class="members-scroll">
+    {% for member in members %}
+    <a href="{% url 'member_detail' member.pk %}" class="member-card">
+      <div class="avatar avatar-{{ member.avatar_color }}">{{ member.avatar_letter }}</div>
+      <div class="member-name">{{ member.display_name }}</div>
+      <div class="member-count">{{ member.doc_count_ann }} doc{{ member.doc_count_ann|pluralize }}</div>
+    </a>
+    {% endfor %}
+    <a href="{% url 'add_member' %}" class="member-card member-add">
+      <div class="avatar avatar-add">＋</div>
+      <div class="member-name">Add</div>
+      <div class="member-count">Member</div>
+    </a>
+  </div>
+
+  <!-- STATS -->
+  <p class="section-title" style="padding: 0 24px; margin-bottom: 14px;">Overview</p>
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-num stat-purple">{{ total_docs }}</div>
+      <div class="stat-label">Total Docs</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num stat-green">{{ members.count }}</div>
+      <div class="stat-label">Members</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num stat-pink">5</div>
+      <div class="stat-label">Categories</div>
+    </div>
+  </div>
+
+  <!-- RECENT DOCS -->
+  <div class="section-header">
+    <p class="section-title">Recent Documents</p>
+    <a href="{% url 'upload' %}" class="section-action">+ Upload</a>
+  </div>
+
+  <div class="doc-list">
+    {% for doc in recent_docs %}
+    <a href="{% url 'document_viewer' doc.pk %}" class="doc-item">
+      <div class="doc-icon doc-icon-{{ doc.category }}">{{ doc.category_emoji }}</div>
+      <div class="doc-meta">
+        <div class="doc-name">{{ doc.name }}</div>
+        <div class="doc-info">{{ doc.member.display_name }} · {{ doc.get_category_display }} · {{ doc.updated_at|timesince }} ago</div>
+      </div>
+      <div class="doc-badge badge-cloud">☁</div>
+    </a>
+    {% empty %}
+    <div class="empty-state">
+      <div class="empty-icon">📂</div>
+      <div class="empty-title">No documents yet</div>
+      <div class="empty-sub">Upload your first document to get started</div>
+      <a href="{% url 'upload' %}" class="btn-primary" style="margin-top: 16px; display: inline-block;">Upload Document</a>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% endif %}
+
+</div>
+{% endblock %}

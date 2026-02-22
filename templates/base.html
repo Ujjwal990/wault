@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}{{ FAMILY_NAME }}{% endblock %} — Wault</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/vault.css' %}">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>">
+</head>
+<body>
+
+{% if user.is_authenticated %}
+<!-- SIDEBAR (desktop) -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <span class="logo-icon">🔐</span>
+    <span class="logo-text">Wa<span class="logo-accent">ult</span></span>
+  </div>
+
+  <nav class="sidebar-nav">
+    <a href="{% url 'home' %}" class="snav-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+      <span class="snav-icon">🏠</span>
+      <span class="snav-label">Home</span>
+    </a>
+    <a href="{% url 'upload' %}" class="snav-item {% if request.resolver_match.url_name == 'upload' %}active{% endif %}">
+      <span class="snav-icon">⬆️</span>
+      <span class="snav-label">Upload</span>
+    </a>
+    <a href="{% url 'add_member' %}" class="snav-item {% if request.resolver_match.url_name == 'add_member' %}active{% endif %}">
+      <span class="snav-icon">👤</span>
+      <span class="snav-label">Add Member</span>
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="sidebar-user">
+      <div class="sidebar-avatar">{{ user.username|slice:":1"|upper }}</div>
+      <div class="sidebar-userinfo">
+        <div class="sidebar-username">{{ user.username }}</div>
+        <div class="sidebar-role">Admin</div>
+      </div>
+    </div>
+    <a href="{% url 'logout' %}" class="logout-btn" title="Sign out">⏻</a>
+  </div>
+</aside>
+
+<!-- MOBILE TOP BAR -->
+<header class="mobile-header">
+  <div class="nav-logo">Wa<span>ult</span></div>
+  <button class="menu-toggle" id="menuToggle" aria-label="Menu">☰</button>
+</header>
+
+<!-- MOBILE DRAWER -->
+<div class="mobile-overlay" id="mobileOverlay"></div>
+<div class="mobile-drawer" id="mobileDrawer">
+  <div class="drawer-header">
+    <span class="logo-text">🔐 Wa<span class="logo-accent">ult</span></span>
+    <button class="drawer-close" id="drawerClose">✕</button>
+  </div>
+  <nav class="drawer-nav">
+    <a href="{% url 'home' %}" class="snav-item">🏠 Home</a>
+    <a href="{% url 'upload' %}" class="snav-item">⬆️ Upload Document</a>
+    <a href="{% url 'add_member' %}" class="snav-item">👤 Add Member</a>
+    <a href="{% url 'logout' %}" class="snav-item danger">⏻ Sign out</a>
+  </nav>
+</div>
+
+<!-- MAIN -->
+<main class="main-content">
+
+  <!-- Toast messages -->
+  {% if messages %}
+  <div class="toast-container">
+    {% for message in messages %}
+    <div class="toast toast-{{ message.tags }}">
+      <span>{% if message.tags == 'success' %}✓{% elif message.tags == 'error' %}✕{% else %}ℹ{% endif %}</span>
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% block content %}{% endblock %}
+</main>
+
+<!-- BOTTOM NAV (Mobile) -->
+<nav class="bottom-nav">
+  <a href="{% url 'home' %}" class="bnav-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+    <span class="bnav-icon">🏠</span>
+    <span class="bnav-label">Home</span>
+  </a>
+  <a href="{% url 'home' %}" class="bnav-item">
+    <span class="bnav-icon">👥</span>
+    <span class="bnav-label">Members</span>
+  </a>
+  <a href="{% url 'upload' %}" class="bnav-item upload-fab">
+    <span class="fab-inner">＋</span>
+  </a>
+  <a href="#" class="bnav-item">
+    <span class="bnav-icon">📄</span>
+    <span class="bnav-label">Docs</span>
+  </a>
+  <a href="#" class="bnav-item" id="mobileMenuBtn">
+    <span class="bnav-icon">☰</span>
+    <span class="bnav-label">Menu</span>
+  </a>
+</nav>
+
+{% else %}
+<main class="auth-main">{% block auth_content %}{% endblock %}</main>
+{% endif %}
+
+<script src="{% static 'js/vault.js' %}"></script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% load vault_tags %}
+{% block title %}Upload Document{% endblock %}
+
+{% block content %}
+<div class="page-content">
+
+  <div class="upload-header">
+    <a href="{% url 'home' %}" class="back-btn">← Back</a>
+    <h1>Add Document</h1>
+    <p>Upload a new document to the vault</p>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" class="upload-form" id="uploadForm">
+    {% csrf_token %}
+
+    <!-- Member -->
+    <div class="form-group">
+      <label class="form-label">Family Member</label>
+      <select name="member" class="form-select" required>
+        <option value="">Select a member…</option>
+        {% for member in members %}
+        <option value="{{ member.pk }}"
+          {% if form.member.value == member.pk|stringformat:"s" %}selected{% endif %}
+        >{{ member.display_name }} ({{ member.name }})</option>
+        {% endfor %}
+      </select>
+      {% if form.member.errors %}<div class="form-error">{{ form.member.errors.0 }}</div>{% endif %}
+    </div>
+
+    <!-- Category -->
+    <div class="form-group">
+      <label class="form-label">Category</label>
+      <div class="cat-pick-grid">
+        {% for cat_key, cat_label in form.fields.category.choices %}
+        <label class="cat-pick-item">
+          <input type="radio" name="category" value="{{ cat_key }}"
+            {% if form.category.value == cat_key or not form.category.value and cat_key == 'identity' %}checked{% endif %}
+          >
+          <div class="cat-pick-card cat-{{ cat_key }}">
+            <span class="cat-pick-emoji">{{ category_meta|get_item:cat_key|get_item:"emoji" }}</span>
+            <span class="cat-pick-label">{{ cat_label }}</span>
+          </div>
+        </label>
+        {% endfor %}
+      </div>
+      {% if form.category.errors %}<div class="form-error">{{ form.category.errors.0 }}</div>{% endif %}
+    </div>
+
+    <!-- Document Name -->
+    <div class="form-group">
+      <label class="form-label">Document Name</label>
+      <input type="text" name="name" class="form-input"
+        value="{{ form.name.value|default:'' }}"
+        placeholder="e.g. Aadhaar Card, CGHS Card, 10th Marksheet…"
+        required
+      >
+      {% if form.name.errors %}<div class="form-error">{{ form.name.errors.0 }}</div>{% endif %}
+    </div>
+
+    <!-- File Type -->
+    <div class="form-group">
+      <label class="form-label">File Type</label>
+      <div class="type-toggle">
+        <label class="type-btn">
+          <input type="radio" name="file_type" value="image"
+            {% if form.file_type.value != 'pdf' %}checked{% endif %}
+          > 🖼 Image
+        </label>
+        <label class="type-btn">
+          <input type="radio" name="file_type" value="pdf"
+            {% if form.file_type.value == 'pdf' %}checked{% endif %}
+          > 📄 PDF
+        </label>
+      </div>
+      {% if form.file_type.errors %}<div class="form-error">{{ form.file_type.errors.0 }}</div>{% endif %}
+    </div>
+
+    <!-- File Upload -->
+    <div class="form-group">
+      <label class="form-label">File</label>
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <input type="file" id="fileInput" name="file" accept=".jpg,.jpeg,.png,.pdf" style="display:none" required>
+        <div class="drop-content" id="dropContent">
+          <div class="drop-icon">☁️</div>
+          <div class="drop-text">Tap to upload or drag & drop</div>
+          <div class="drop-sub">JPG, PNG, PDF · Max 10 MB</div>
+        </div>
+        <div class="drop-selected" id="dropSelected" style="display:none;">
+          <span class="drop-file-icon">📄</span>
+          <span class="drop-file-name" id="dropFileName"></span>
+          <span class="drop-file-size" id="dropFileSize"></span>
+        </div>
+      </div>
+      {% if form.file.errors %}<div class="form-error">{{ form.file.errors.0 }}</div>{% endif %}
+    </div>
+
+    <!-- Notes -->
+    <div class="form-group">
+      <label class="form-label">Notes <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+      <textarea name="notes" class="form-input" rows="3"
+        placeholder="Any additional info about this document…">{{ form.notes.value|default:'' }}</textarea>
+    </div>
+
+    <!-- Upload Progress -->
+    <div class="upload-progress" id="uploadProgress" style="display:none;">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <p class="progress-text">Uploading to Google Drive…</p>
+    </div>
+
+    <button type="submit" class="submit-btn" id="submitBtn">
+      <span id="submitText">Save to Vault</span>
+    </button>
+
+  </form>
+</div>
+
+<script>
+// File input display
+const fileInput = document.getElementById('fileInput');
+fileInput.addEventListener('change', function() {
+  const file = this.files[0];
+  if (file) {
+    document.getElementById('dropContent').style.display = 'none';
+    document.getElementById('dropSelected').style.display = 'flex';
+    document.getElementById('dropFileName').textContent = file.name;
+    const kb = (file.size / 1024).toFixed(0);
+    document.getElementById('dropFileSize').textContent = kb > 1024
+      ? (file.size / (1024*1024)).toFixed(1) + ' MB'
+      : kb + ' KB';
+  }
+});
+
+// Drag & drop
+const dropZone = document.getElementById('dropZone');
+['dragenter','dragover'].forEach(e => {
+  dropZone.addEventListener(e, ev => {
+    ev.preventDefault();
+    dropZone.classList.add('drag-over');
+  });
+});
+['dragleave','drop'].forEach(e => {
+  dropZone.addEventListener(e, ev => {
+    ev.preventDefault();
+    dropZone.classList.remove('drag-over');
+  });
+});
+dropZone.addEventListener('drop', ev => {
+  const file = ev.dataTransfer.files[0];
+  if (file) {
+    fileInput.files = ev.dataTransfer.files;
+    fileInput.dispatchEvent(new Event('change'));
+  }
+});
+
+// Form submit
+document.getElementById('uploadForm').addEventListener('submit', function() {
+  document.getElementById('uploadProgress').style.display = 'block';
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('submitText').textContent = 'Uploading…';
+  let w = 0;
+  const bar = document.getElementById('progressFill');
+  const timer = setInterval(() => {
+    w = Math.min(w + Math.random() * 15, 85);
+    bar.style.width = w + '%';
+  }, 400);
+});
+
+// Type toggle styling
+document.querySelectorAll('.type-btn input').forEach(radio => {
+  radio.addEventListener('change', function() {
+    document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+    this.closest('.type-btn').classList.add('active');
+  });
+  if (radio.checked) radio.closest('.type-btn').classList.add('active');
+});
+</script>
+{% endblock %}

@@ -1,0 +1,21 @@
+[Unit]
+Description=Wault — Family Vault Gunicorn
+After=network.target
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/home/ubuntu/wault
+EnvironmentFile=/home/ubuntu/wault/.env
+ExecStart=/home/ubuntu/wault/.venv/bin/gunicorn \
+          --workers 2 \
+          --bind unix:/home/ubuntu/wault/wault.sock \
+          --timeout 120 \
+          --access-logfile /home/ubuntu/wault/logs/access.log \
+          --error-logfile  /home/ubuntu/wault/logs/error.log \
+          wault.wsgi:application
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

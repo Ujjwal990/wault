@@ -1,0 +1,8 @@
+Django==5.1.7
+gunicorn==23.0.0
+python-decouple==3.8
+google-api-python-client==2.160.0
+google-auth==2.38.0
+google-auth-httplib2==0.2.0
+google-auth-oauthlib==1.2.1
+whitenoise==6.9.0

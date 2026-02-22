@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign In — Wault</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/vault.css' %}">
+</head>
+<body class="auth-page">
+
+<div class="auth-bg">
+  <div class="auth-glow auth-glow-1"></div>
+  <div class="auth-glow auth-glow-2"></div>
+</div>
+
+<div class="auth-card">
+  <div class="auth-logo">
+    <div class="auth-logo-icon">🔐</div>
+    <div class="auth-logo-text">Wault</div>
+    <div class="auth-logo-sub">Family Document Vault</div>
+  </div>
+
+  {% if form.errors %}
+  <div class="auth-error">
+    <span>✕</span> Invalid username or password.
+  </div>
+  {% endif %}
+
+  <form method="post" class="auth-form">
+    {% csrf_token %}
+    <div class="form-group">
+      <label class="form-label">Username</label>
+      <input
+        type="text"
+        name="username"
+        class="form-input"
+        placeholder="Enter your username"
+        autofocus
+        required
+      >
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input
+        type="password"
+        name="password"
+        class="form-input"
+        placeholder="••••••••"
+        required
+      >
+    </div>
+    <input type="hidden" name="next" value="{{ next }}">
+    <button type="submit" class="submit-btn" style="margin-top:8px;">
+      Sign In to Vault
+    </button>
+  </form>
+
+  <p class="auth-hint">Only family members can access this vault.</p>
+</div>
+
+</body>
+</html>

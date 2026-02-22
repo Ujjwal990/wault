@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% block title %}{{ doc.name }}{% endblock %}
+
+{% block content %}
+<div class="page-content">
+
+  <!-- VIEWER HEADER -->
+  <div class="viewer-header">
+    <a href="{% url 'member_detail' doc.member.pk %}" class="back-btn">← {{ doc.member.display_name }}</a>
+    <div class="viewer-title">
+      <h2>{{ doc.name }}</h2>
+      <p>{{ doc.member.display_name }} · {{ doc.get_category_display }} · Added {{ doc.created_at|date:"d M Y" }}</p>
+    </div>
+  </div>
+
+  <!-- CLOUD STATUS -->
+  <div class="cloud-status">
+    <div class="cloud-dot"></div>
+    <div class="cloud-text">
+      Stored on Google Drive
+      <span>{% if doc.drive_view_url %}<a href="{{ doc.drive_view_url }}" target="_blank" rel="noopener" class="drive-link">Open in Google Drive ↗</a>{% else %}Not yet uploaded{% endif %}</span>
+    </div>
+  </div>
+
+  <!-- DOCUMENT PREVIEW -->
+  <div class="doc-preview">
+    <div class="preview-header">
+      <span>Preview</span>
+      <div class="preview-type-badge">{{ doc.get_file_type_display }}</div>
+    </div>
+    <div class="preview-body">
+      {% if doc.drive_file_id %}
+        {% if doc.file_type == 'image' %}
+        <img
+          src="{{ doc.drive_thumbnail_url }}"
+          alt="{{ doc.name }}"
+          class="preview-img"
+          loading="lazy"
+          onerror="this.style.display='none'; document.getElementById('preview-fallback').style.display='flex';"
+        >
+        <div id="preview-fallback" class="preview-placeholder" style="display:none;">
+          <span class="preview-big-emoji">{{ doc.category_emoji }}</span>
+          <p>Preview not available</p>
+          <a href="{{ doc.drive_view_url }}" target="_blank" class="btn-ghost">Open in Drive ↗</a>
+        </div>
+        {% else %}
+        <iframe
+          src="{{ doc.drive_preview_url }}"
+          class="preview-iframe"
+          title="{{ doc.name }} preview"
+          loading="lazy"
+          frameborder="0"
+          allowfullscreen
+        ></iframe>
+        {% endif %}
+      {% else %}
+      <div class="preview-placeholder">
+        <span class="preview-big-emoji">{{ doc.category_emoji }}</span>
+        <p>No file uploaded yet</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="doc-actions">
+    {% if doc.drive_view_url %}
+    <a href="{{ doc.drive_view_url }}" target="_blank" rel="noopener" class="action-btn">
+      <span class="action-icon">🔗</span>
+      <span class="action-label">Open Drive</span>
+    </a>
+    {% endif %}
+    {% if doc.drive_file_id %}
+    <a href="{% url 'document_download' doc.pk %}" class="action-btn">
+      <span class="action-icon">⬇️</span>
+      <span class="action-label">Download</span>
+    </a>
+    {% endif %}
+    <a href="{% url 'document_rename' doc.pk %}" class="action-btn">
+      <span class="action-icon">✏️</span>
+      <span class="action-label">Edit</span>
+    </a>
+    <button
+      class="action-btn action-btn-danger"
+      onclick="confirmDelete()"
+    >
+      <span class="action-icon">🗑️</span>
+      <span class="action-label">Delete</span>
+    </button>
+  </div>
+
+  <!-- DOC INFO -->
+  <div class="info-card">
+    <div class="info-card-header">Document Info</div>
+    <div class="info-rows">
+      <div class="info-row">
+        <span class="info-label">Member</span>
+        <span class="info-value">
+          <a href="{% url 'member_detail' doc.member.pk %}">{{ doc.member.display_name }} ({{ doc.member.name }})</a>
+        </span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Category</span>
+        <span class="info-value">{{ doc.category_emoji }} {{ doc.get_category_display }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Format</span>
+        <span class="info-value">{{ doc.get_file_type_display }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">File Size</span>
+        <span class="info-value">{{ doc.file_size_display }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Added</span>
+        <span class="info-value">{{ doc.created_at|date:"d M Y, h:i A" }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Updated</span>
+        <span class="info-value">{{ doc.updated_at|date:"d M Y, h:i A" }}</span>
+      </div>
+      {% if doc.notes %}
+      <div class="info-row" style="flex-direction: column; gap: 6px; align-items: flex-start;">
+        <span class="info-label">Notes</span>
+        <span class="info-value">{{ doc.notes }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<!-- Delete confirmation modal -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <div class="modal-icon">🗑️</div>
+    <h3 class="modal-title">Delete Document?</h3>
+    <p class="modal-body">This will permanently delete <strong>{{ doc.name }}</strong> from the vault and Google Drive. This cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal()">Cancel</button>
+      <form method="post" action="{% url 'document_delete' doc.pk %}" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn-danger">Delete</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function confirmDelete() {
+  document.getElementById('deleteModal').classList.add('active');
+}
+function closeModal() {
+  document.getElementById('deleteModal').classList.remove('active');
+}
+document.getElementById('deleteModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+{% endblock %}

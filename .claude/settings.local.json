@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cp .env.example .env && .venv/bin/python manage.py check 21)",
+      "Bash(.venv/bin/python:*)"
+    ]
+  }
+}

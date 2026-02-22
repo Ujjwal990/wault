@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}{{ member.display_name }}{% endblock %}
+
+{% block content %}
+<div class="page-content">
+
+  <!-- MEMBER HEADER -->
+  <div class="member-hero">
+    <a href="{% url 'home' %}" class="back-btn">← Back</a>
+    <div class="member-hero-inner">
+      <div class="avatar avatar-{{ member.avatar_color }} avatar-lg">{{ member.avatar_letter }}</div>
+      <div class="member-hero-info">
+        <h1 class="member-hero-name">{{ member.display_name }}</h1>
+        <p class="member-hero-full">{{ member.name }}</p>
+        <p class="member-hero-sub">{{ member.doc_count }} document{{ member.doc_count|pluralize }} · Last updated {{ member.documents.first.updated_at|timesince|default:"never" }} ago</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CATEGORY TABS -->
+  <div class="cat-tabs">
+    <a href="{% url 'member_detail' member.pk %}" class="cat-tab {% if not category_filter %}active{% endif %}">
+      All <span class="cat-tab-count">{{ member.doc_count }}</span>
+    </a>
+    {% for cat in categories %}
+    <a href="?cat={{ cat.key }}" class="cat-tab {% if cat.active %}active{% endif %}">
+      {{ cat.emoji }} {{ cat.label }}
+      {% if cat.count %}<span class="cat-tab-count">{{ cat.count }}</span>{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+
+  <!-- CATEGORIES GRID (only when no filter) -->
+  {% if not category_filter %}
+  <div class="categories-grid">
+    {% for cat in categories %}
+    {% if cat.count %}
+    <a href="?cat={{ cat.key }}" class="cat-card cat-{{ cat.key }}">
+      <div class="cat-emoji">{{ cat.emoji }}</div>
+      <div class="cat-name">{{ cat.label }}</div>
+      <div class="cat-count">{{ cat.count }} doc{{ cat.count|pluralize }}</div>
+      <div class="cat-arrow">›</div>
+    </a>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- DOC LIST -->
+  <div class="section-header" style="margin-top: 8px;">
+    <p class="section-title">
+      {% if category_filter %}{{ active_cat_meta.emoji }} {{ active_cat_meta.label }}{% else %}All Documents{% endif %}
+    </p>
+    <a href="{% url 'upload' %}?member={{ member.pk }}" class="section-action">+ Add</a>
+  </div>
+
+  <div class="doc-list">
+    {% for doc in docs %}
+    <a href="{% url 'document_viewer' doc.pk %}" class="doc-item">
+      <div class="doc-icon doc-icon-{{ doc.category }}">{{ doc.category_emoji }}</div>
+      <div class="doc-meta">
+        <div class="doc-name">{{ doc.name }}</div>
+        <div class="doc-info">{{ doc.get_category_display }} · {{ doc.get_file_type_display }} · {{ doc.file_size_display }}</div>
+      </div>
+      <div class="doc-badge badge-cloud">☁</div>
+    </a>
+    {% empty %}
+    <div class="empty-state">
+      <div class="empty-icon">📂</div>
+      <div class="empty-title">No documents here</div>
+      <div class="empty-sub">Upload a document for {{ member.display_name }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- ADD BUTTON -->
+  <div style="padding: 16px 24px 120px;">
+    <a href="{% url 'upload' %}?member={{ member.pk }}" class="submit-btn" style="display:block; text-align:center; text-decoration:none;">
+      ＋ Add Document for {{ member.display_name }}
+    </a>
+  </div>
+
+</div>
+{% endblock %}
